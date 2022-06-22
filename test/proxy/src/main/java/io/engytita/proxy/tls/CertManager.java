@@ -14,25 +14,31 @@ public class CertManager {
 
    private static final int CERT_CACHE_SIZE = 2000;
 
-   private final X509CertificateHolder certificate;
-   private final PrivateKeyInfo key;
-
    private final LoadingCache<String, Certificate> certsCache;
 
    public CertManager(ProxyConfig config) {
-      this.certificate = config.getCertificate();
-      this.key = config.getKey();
       this.certsCache = Caffeine.newBuilder()
             .expireAfterWrite(1, TimeUnit.DAYS)
             .maximumSize(CERT_CACHE_SIZE)
-            .build(this::createCert);
+            .build(new CacheLoader(config.getCertificate(), config.getKey()));
    }
 
    public Certificate getCert(String host) {
       return certsCache.get(host);
    }
 
-   private Certificate createCert(String host) {
-      return CertUtil.newCert(certificate, key, host);
+   static class CacheLoader implements com.github.benmanes.caffeine.cache.CacheLoader<String, Certificate> {
+
+      X509CertificateHolder certificate;
+      PrivateKeyInfo key;
+
+      public CacheLoader(X509CertificateHolder certificate, PrivateKeyInfo key) {
+         this.certificate = certificate;
+         this.key = key;
+      }
+
+      public Certificate load(String host) {
+         return CertUtil.newCert(certificate, key, host);
+      }
    }
 }

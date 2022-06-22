@@ -1,6 +1,7 @@
 IMG_REGISTRY ?= localhost:5001
 CLIENT_IMG ?= $(IMG_REGISTRY)/client
 SERVER_IMG ?= $(IMG_REGISTRY)/server
+PROXY_IMG ?= $(IMG_REGISTRY)/proxy
 POSTGRES_IMG ?= $(IMG_REGISTRY)/postgres
 ENVOY_IMG ?= $(IMG_REGISTRY)/envoy
 
@@ -41,6 +42,16 @@ server-image:
 server-push:
 	$(CONTAINER_TOOL) push $(SERVER_IMG)
 
+.PHONY: proxy-image
+## Build the proxy image
+proxy-image:
+	$(CONTAINER_TOOL) build test/proxy -f test/proxy/src/main/docker/Dockerfile.native-micro -t $(PROXY_IMG)
+
+.PHONY: proxy-push
+## Push the proxy image
+proxy-push:
+	$(CONTAINER_TOOL) push $(PROXY_IMG)
+
 .PHONY: postgres-image
 ## Build the postgres image
 postgres-image:
@@ -68,11 +79,11 @@ envoy-push:
 
 .PHONY: build-all-images
 ## Build all images
-build-all-images: client-image server-image postgres-image envoy-image
+build-all-images: client-image server-image proxy-image postgres-image envoy-image
 
 .PHONY: push-all-images
 ## Push all images
-push-all-images: client-push server-push postgres-push envoy-push
+push-all-images: client-push server-push proxy-push postgres-push envoy-push
 
 .PHONY: kind-cluster
 ## Create a local kind cluster with image registry localhost:5000
